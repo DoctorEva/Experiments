@@ -439,24 +439,32 @@ void* dropper_action(void* arg)
 void* score_flash(void* arg)
 {
   // Causes "Score!!!" to flash at a fixed point on the screen.
+  mtx.lock();
   attron(A_BOLD|A_BLINK);
   mvprintw(16,5,"Score!!!");
   refresh();
   attroff(A_BOLD|A_BLINK);
+  mtx.unlock();
   sleep(3);
+  mtx.lock();
   mvprintw(16,5,"        ");
   refresh();
+  mtx.unlock();
   pthread_exit(NULL);
 }
 void* levelup_flash(void* arg)
 {
+  mtx.lock();
   attron(A_BOLD|A_BLINK);
   mvprintw(15,5,"Leveled up!");
   refresh();
   attroff(A_BOLD|A_BLINK);
+  mtx.unlock();
   sleep(4);
+  mtx.lock();
   mvprintw(15,5,"           ");
   refresh();
+  mtx.unlock();
   pthread_exit(NULL);
 }
 
