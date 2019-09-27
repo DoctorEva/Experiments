@@ -343,6 +343,7 @@ int base_score(int lines_removed)
 
   return base;
 }
+
 void refresh_Game(WINDOW* Game, struct block **Grid)
 {
   // Redraws the game grid screen.
@@ -520,10 +521,12 @@ int remove_rows(struct block **Grid)
   {
     int in_row = 0;
     int col;
+    // Detect full rows
     for(col=0; col<width; col++)
     {
       in_row += Grid[row][col].occupation;
     }
+    // Remove full rows
     if(in_row == width)
     {
       full_rows++;
@@ -561,19 +564,22 @@ int PlayGame()
   WINDOW *Panel;
   WINDOW *Game;
 
-  int term_x, term_y;
-  getmaxyx(stdscr, term_y, term_x);
-  while(term_y < height+top_buffer+3 || term_x < 50)
+  // Terminal dimension cheecking block.
   {
-    mvprintw(0, 0, "Please enlarge your terminal to 50x%d chars for Tetris!",height+top_buffer+3);
-    if(term_y < height+top_buffer+3)
-      mvprintw(1,0, "Down more!");
-    else if(term_x < 50)
-      mvprintw(1,0, "Right more!");
-    refresh();
+    int term_x, term_y;
     getmaxyx(stdscr, term_y, term_x);
+    while(term_y < height+top_buffer+3 || term_x < 50)
+    {
+      mvprintw(0, 0, "Please enlarge your terminal to 50x%d chars for Tetris!",height+top_buffer+3);
+      if(term_y < height+top_buffer+3)
+        mvprintw(1,0, "Down more!");
+      else if(term_x < 50)
+        mvprintw(1,0, "Right more!");
+      refresh();
+      getmaxyx(stdscr, term_y, term_x);
+    }
+    clear();
   }
-  clear();
 
   Panel = newwin(10, 20, 3, 1);
   Game = newwin(height+top_buffer+2, width*2+2, 1, 22);
