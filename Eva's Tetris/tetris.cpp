@@ -509,7 +509,7 @@ int drop_peice(WINDOW* Game, struct block **Grid, struct Panel_Data* info)
   return peice.check_bounds();
 }
 
-int remove_rows(struct block **Grid)
+int remove_rows(struct block **Grid, WINDOW* Game)
 {
   /*
   Finds and removes all 'complete' rows and drops down all above rows,
@@ -531,8 +531,12 @@ int remove_rows(struct block **Grid)
     {
       full_rows++;
       for(col=0; col<width; col++)
+      {
         Grid[row][col].occupation = 0;
-
+        wattron(Game, A_BLINK);
+        mvwprintw(Game, row+1, col*2+1, "#");
+        wattroff(Game, A_BLINK);
+      }
       // Drop the remaining rows above.
       int dropping_row = row;
       while(dropping_row > 1)
@@ -547,8 +551,10 @@ int remove_rows(struct block **Grid)
   }
   if(full_rows)
   {
+    wrefresh(Game);
     pthread_t flash;
     pthread_create(&flash, NULL, score_flash, NULL);
+    sleep(2);
   }
   return full_rows;
 }
@@ -614,7 +620,7 @@ int PlayGame()
 
   while(drop_peice(Game, Grid, &info))
   {
-    int lines_removed = remove_rows(Grid);
+    int lines_removed = remove_rows(Grid, Game);
     info.score = info.score + (info.level+1)*(base_score(lines_removed));
     info.lines = info.lines+lines_removed;
     int old_level = info.level;
