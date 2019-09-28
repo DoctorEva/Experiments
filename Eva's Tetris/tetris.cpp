@@ -17,7 +17,7 @@
 #define top_buffer 4      // height of 'out of bounds' space at the top of the game.
 #define base_speed 800    // Starting speed of 'gravity', in milliseconds
 
-// Used to control access to tetromino manipulation during multithreading.
+// Used to control access to tetromino manipulation
 std::mutex mtx;
 
 struct block{
@@ -29,6 +29,7 @@ struct block{
   int col, row;
 };
 struct Hold_box{
+  // Overhead for the hold piece controls
   int hold;
   int hold_use;
   int hold_call;
@@ -57,7 +58,7 @@ class Shape{
 };
 void Shape::set()
 {
-  // Sets all grid spots pointed to by members to active blocks.
+  // Sets all grid spots pointed to by 'members' to active blocks.
   int i;
   for (i=0;i<4;i++)
   {
@@ -106,7 +107,7 @@ int Shape::drop()
 }
 void Shape::left()
 {
-  // Shifts the tetromino left one, if possible
+  // Shifts the tetromino left one, if reachable
   int i;
   for(i=0;i<4;i++)
   {
@@ -130,7 +131,7 @@ void Shape::left()
 }
 void Shape::right()
 {
-  // Shifts the tetromino right one, if possible.
+  // Shifts the tetromino right one, if reachable.
   int i;
   for(i=0;i<4;i++)
   {
@@ -154,7 +155,7 @@ void Shape::right()
 }
 void Shape::down()
 {
-  // Sends the tetromino downwards repeatedly, landing it immedietly.
+  // Shifts the tetromino downwards repeatedly until it hits a wall, landing it immedietly.
   int collision = 0;
   while(!collision)
     collision = drop();
@@ -162,7 +163,7 @@ void Shape::down()
 }
 void Shape::rotate()
 {
-  // Rotates the tetromino, if possible.
+  // Rotates the tetromino, if space permits
   // For each point, Caclulate rotation location.
   struct block* rotation[4];
   int i;
@@ -258,7 +259,7 @@ void Shape::save(struct Hold_box *reserve)
 }
 void Shape::ENDER()
 {
-  // Sets the tetromino in place after landing.
+  // Sets the tetromino inactive and sets it in place.
   int i;
   for(i=0;i<4;i++)
   {
@@ -278,7 +279,7 @@ int Shape::check_bounds()
 }
 Shape::Shape(int color_, struct block** Grid_)
 {
-  // Initializes the tetromino that is being spawned.
+  // Initializes the tetromino that is being spawned at the top of the game.
   color = color_;
   Grid = Grid_;
   center_col = 5;
@@ -329,7 +330,7 @@ Shape::Shape(int color_, struct block** Grid_)
 }
 
 struct Panel_Data{
-  // Data needed for the Game panel.
+  // Overhead data needed for the Game panel display and game.
   WINDOW* panel_win;
   int score;
   int speed;
@@ -366,7 +367,7 @@ int base_score(int lines_removed)
 
 void refresh_Game(WINDOW* Game, struct block **Grid)
 {
-  // Redraws the game grid screen.
+  // Redraws the game board screen.
   wmove(Game, 0, 0);
   wclrtobot(Game);
   box(Game, 0, 0);
@@ -381,7 +382,19 @@ void refresh_Game(WINDOW* Game, struct block **Grid)
       {
         switch(Grid[row][col].color) // TODO - Implement colors.
         {
-          case 0:
+          case 0: // I Peice - Cyan
+            break;
+          case 1: // J Peice - Blue
+            break;
+          case 2: // L Peice - Orange
+            break;
+          case 3: // 0 Peice - Yellow
+            break;
+          case 4: // T Peice - Purple
+            break;
+          case 5: // Z Peice - Green
+            break;
+          case 6: // S Peice - Red
             break;
         }
         mvwprintw(Game, row+1, col*2+1, "%d", Grid[row][col].color );
@@ -393,7 +406,7 @@ void refresh_Game(WINDOW* Game, struct block **Grid)
 }
 void refresh_Panel(struct Panel_Data info)
 {
-  // Redraws the Panel.
+  // Redraws the Information Panel.
   wmove(info.panel_win, 0, 0);
   wclrtobot(info.panel_win);
   box(info.panel_win, 0, 0);
@@ -408,7 +421,7 @@ void refresh_Panel(struct Panel_Data info)
 
 void* controller_action(void* arg)
 {
-  // Thread dedicated to handling user input.
+  // Thread dedicated to handling user input throughout the game.
   struct thread_args *args = (struct thread_args*) arg;
 
   noecho();
@@ -460,7 +473,7 @@ void* dropper_action(void* arg)
 }
 void* score_flash(void* arg)
 {
-  // Causes "Score!!!" to flash at a fixed point on the screen.
+  // Causes "Score!!!" to flash at a fixed point on the screen for few seconds. Does not pause the game.
   mtx.lock();
   attron(A_BOLD|A_BLINK);
   mvprintw(16,5,"Score!!!");
@@ -476,6 +489,7 @@ void* score_flash(void* arg)
 }
 void* levelup_flash(void* arg)
 {
+  // Causes 'Leveled up!' to flash for a few seconds in a fixed position for a few seconds. Does not pause the game.
   mtx.lock();
   attron(A_BOLD|A_BLINK);
   mvprintw(15,5,"Leveled up!");
@@ -497,9 +511,10 @@ int drop_peice(WINDOW* Game, struct block **Grid, struct Panel_Data* info)
   Checks if the tetromino lands within bounds, returns false if it does.
   */
   // Returns 0 if peice dropped out of bounds, else 1.
-  struct thread_args args;
+
   int speed = info->speed;
   int color;
+  // Drop either a random peice or the Hold peice.
   if(info->reserve.hold_call != -1)
   {
     color = info->reserve.hold_call;
@@ -511,16 +526,20 @@ int drop_peice(WINDOW* Game, struct block **Grid, struct Panel_Data* info)
     info->next = rand() % 7;
     info->reserve.hold_use = 0;
   }
-
+  // Spawn the piece and display it on screen.
   Shape peice = Shape(color, Grid);
   refresh_Panel(*info);
   refresh_Game(Game, Grid);
 
-  args.Grid = Grid;
-  args.speed = speed;
-  args.Game = Game;
-  args.peice = &peice;
-  args.reserve = &info->reserve;
+  // Set up threads for Controller and Dropper
+  struct thread_args args;
+  {
+    args.Grid = Grid;
+    args.speed = speed;
+    args.Game = Game;
+    args.peice = &peice;
+    args.reserve = &info->reserve;
+  }
   pthread_t controller;
   pthread_t dropper;
   pthread_attr_t attr;
@@ -543,7 +562,8 @@ int drop_peice(WINDOW* Game, struct block **Grid, struct Panel_Data* info)
 int remove_rows(struct block **Grid, WINDOW* Game)
 {
   /*
-  Finds and removes all 'complete' rows and drops down all above rows,
+  Finds and removes all 'complete' rows and drops down all above rows.
+  Complete rows flash for a few seconds before being removed.
   Returns the number of complete rows removed.
   */
   int full_rows = 0;
@@ -557,7 +577,7 @@ int remove_rows(struct block **Grid, WINDOW* Game)
     {
       in_row += Grid[row][col].occupation;
     }
-    // Remove full rows
+    // Flash and remove full rows
     if(in_row == width)
     {
       full_rows++;
@@ -622,39 +642,43 @@ int PlayGame()
   Game = newwin(height+top_buffer+2, width*2+2, 1, 22);
   // Initializing Grid..
   struct block **Grid;
-  Grid = new struct block * [height+top_buffer];
-  for(int row=0 ;row<height+top_buffer; row++)
-    Grid[row] = new struct block[width];
-  // Start the grid Empty.
-  for(int row=0; row<height+top_buffer; row++)
   {
-    for(int col=0; col<width; col++)
+    Grid = new struct block * [height+top_buffer];
+    for(int row=0 ;row<height+top_buffer; row++)
+      Grid[row] = new struct block[width];
+    // Start the grid Empty.
+    for(int row=0; row<height+top_buffer; row++)
     {
-      Grid[row][col].occupation = 0;
-      Grid[row][col].color = 0;
-      Grid[row][col].is_active = 0;
-      Grid[row][col].row = row;
-      Grid[row][col].col = col;
+      for(int col=0; col<width; col++)
+      {
+        Grid[row][col].occupation = 0;
+        Grid[row][col].color = 0;
+        Grid[row][col].is_active = 0;
+        Grid[row][col].row = row;
+        Grid[row][col].col = col;
+      }
     }
   }
   // Initialize Panel information
   struct Panel_Data info;
-  info.panel_win = Panel;
-  info.score = 0;
-  info.speed = base_speed; // 1 second
-  info.lines = 0; // Level up every 5 lines.
-  info.level = 0;
-  info.next = rand() % 7;
-  info.reserve.hold = -1;
-  info.reserve.hold_use = 0;
-  info.reserve.hold_call = -1;
-  refresh_Panel(info);
-  refresh_Game(Game, Grid);
-  refresh();
-
+  {
+    info.panel_win = Panel;
+    info.score = 0;
+    info.speed = base_speed; // 1 second
+    info.lines = 0; // Level up every 5 lines.
+    info.level = 0;
+    info.next = rand() % 7;
+    info.reserve.hold = -1;
+    info.reserve.hold_use = 0;
+    info.reserve.hold_call = -1;
+    refresh_Panel(info);
+    refresh_Game(Game, Grid);
+    refresh();
+  }
   // Game loop begins.
   while(drop_peice(Game, Grid, &info))
   {
+    // Check for completed rows, update information board.
     int lines_removed = remove_rows(Grid, Game);
     info.score = info.score + (info.level+1)*(base_score(lines_removed));
     info.lines = info.lines+lines_removed;
@@ -671,16 +695,18 @@ int PlayGame()
     refresh_Panel(info);
     refresh_Game(Game, Grid);
   }
-  wattron(Game, A_BOLD | A_BLINK);
-  mvwprintw(Game, 10,5, "GAME OVER");
-  wrefresh(Game);
-  wmove(Game, 0, 0);
-  sleep(5);
+  // Ending Game.
+  {
+    wattron(Game, A_BOLD | A_BLINK);
+    mvwprintw(Game, 10,5, "GAME OVER");
+    wrefresh(Game);
+    wmove(Game, 0, 0);
+    sleep(5);
 
-  delwin(Panel);
-  delwin(Game);
-  endwin();
-
+    delwin(Panel);
+    delwin(Game);
+    endwin();
+  }
   return info.score;
 }
 
