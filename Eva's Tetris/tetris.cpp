@@ -34,7 +34,11 @@ struct block{
 
   int col, row;
 };
-
+struct Hold_box{
+  int hold;
+  int hold_use;
+  int hold_call;
+};
 
 class Shape{
   // Tetromino class, provides tetromino manipulation.
@@ -54,6 +58,7 @@ class Shape{
     void right();
     void down();
     void ENDER();
+    void save(struct Hold_box *reserve);
     int check_bounds();
 };
 void Shape::set()
@@ -239,6 +244,24 @@ void Shape::rotate()
   }
 
 }
+void Shape::save(struct Hold_box *reserve)
+{
+  //Removes the peice from the board.
+  //Places the peice in Hold on the board if there is one, else drop next.
+
+  if(reserve->hold_use == 0) // Hold use is zero if avaliable
+  {
+    down();
+    blank(); // When down and blank are comboed, they remove the piece.
+    // because of Down(), the dropper is gaurenteed to exit it's loop.
+    if(reserve->hold != -1)
+    {
+      reserve->hold_call = reserve->hold;
+    }
+    reserve->hold = color;
+    reserve->hold_use = 1;
+  }
+}
 void Shape::ENDER()
 {
   // Sets the tetromino in place after landing.
@@ -319,6 +342,7 @@ struct Panel_Data{
   int lines;
   int level;
   int next;
+  struct Hold_box reserve;
 };
 struct thread_args{
   // Data needed to run the dropper_action and controller_action threads.
@@ -326,6 +350,8 @@ struct thread_args{
   int speed;
   WINDOW* Game;
   Shape* peice;
+
+  struct Hold_box *reserve;
 };
 
 int base_score(int lines_removed)
@@ -382,6 +408,7 @@ void refresh_Panel(struct Panel_Data info)
   mvwprintw(info.panel_win, 4, 1, "Level: %d", info.level);
   mvwprintw(info.panel_win, 5, 1, "Delay (ms): %d", info.speed);
   mvwprintw(info.panel_win, 6, 1, "Next: %d", info.next);
+  mvwprintw(info.panel_win, 7, 1, "Hold: %d", info.reserve.hold);
   wrefresh(info.panel_win);
 }
 
@@ -410,7 +437,7 @@ void* controller_action(void* arg)
         args->peice->rotate();
         break;
       case 65: // Up Arrow
-        //args->peice->save();
+        args->peice->save(args->reserve);
         break;
     }
     refresh_Game(args->Game, args->Grid);
@@ -477,9 +504,19 @@ int drop_peice(WINDOW* Game, struct block **Grid, struct Panel_Data* info)
   */
   // Returns 0 if peice dropped out of bounds, else 1.
   struct thread_args args;
-  int color = info->next;
   int speed = info->speed;
-  info->next = rand() % 7;
+  int color;
+  if(info->reserve.hold_call != -1)
+  {
+    color = info->reserve.hold_call;
+    info->reserve.hold_call = -1;
+  }
+  else
+  {
+    color = info->next;
+    info->next = rand() % 7;
+    info->reserve.hold_use = 0;
+  }
 
   Shape peice = Shape(color, Grid);
   refresh_Panel(*info);
@@ -489,6 +526,7 @@ int drop_peice(WINDOW* Game, struct block **Grid, struct Panel_Data* info)
   args.speed = speed;
   args.Game = Game;
   args.peice = &peice;
+  args.reserve = &info->reserve;
   pthread_t controller;
   pthread_t dropper;
   pthread_attr_t attr;
@@ -505,7 +543,6 @@ int drop_peice(WINDOW* Game, struct block **Grid, struct Panel_Data* info)
 
   refresh_Game(Game, Grid);
 
-  //return args.peice->current_row > top_buffer;
   return peice.check_bounds();
 }
 
@@ -606,7 +643,7 @@ int PlayGame()
       Grid[row][col].col = col;
     }
   }
-
+  // Initialize Panel information
   struct Panel_Data info;
   info.panel_win = Panel;
   info.score = 0;
@@ -614,10 +651,14 @@ int PlayGame()
   info.lines = 0; // Level up every 5 lines.
   info.level = 0;
   info.next = rand() % 7;
+  info.reserve.hold = -1;
+  info.reserve.hold_use = 0;
+  info.reserve.hold_call = -1;
   refresh_Panel(info);
   refresh_Game(Game, Grid);
   refresh();
 
+  // Game loop begins.
   while(drop_peice(Game, Grid, &info))
   {
     int lines_removed = remove_rows(Grid, Game);
