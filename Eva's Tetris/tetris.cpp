@@ -4,17 +4,8 @@
 //Possible future expansions - Sound and Music system. Color UI. Shape Previews
 //*************
 #include <stdlib.h>
-#include <string.h>
-#include <vector>
-#include <iostream>
-
-#include <string>
-#include <cstring>
-#include <fstream>
-
 #include <math.h>
 #include <unistd.h>
-#include <algorithm> // max(), min()
 
 #include <ncurses.h>
 #include <pthread.h>
