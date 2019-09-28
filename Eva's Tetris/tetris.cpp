@@ -1,5 +1,8 @@
-// Compilation Line: g++ -std=c++11 -o Tetris tetris.cpp -lncurses -lpthread
-
+//*************
+//Compilation Line: g++ -std=c++11 -o Tetris tetris.cpp -lncurses -lpthread
+//This program allows the user to play a game of Tetris.
+//Possible future expansions - Sound and Music system. Color UI. Shape Previews
+//*************
 #include <stdlib.h>
 #include <string.h>
 #include <vector>
