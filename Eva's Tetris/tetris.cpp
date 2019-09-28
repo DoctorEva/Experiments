@@ -1,7 +1,7 @@
 //*************
 //Compilation Line: g++ -std=c++11 -o Tetris tetris.cpp -lncurses -lpthread
 //This program allows the user to play a game of Tetris.
-//Possible future expansions - Sound and Music system. Color UI. Shape Previews
+//Possible future expansions - Sound and Music system. Shape Previews
 //*************
 #include <stdlib.h>
 #include <math.h>
@@ -380,24 +380,9 @@ void refresh_Game(WINDOW* Game, struct block **Grid)
     {
       if(Grid[row][col].occupation)
       {
-        switch(Grid[row][col].color) // TODO - Implement colors.
-        {
-          case 0: // I Peice - Cyan
-            break;
-          case 1: // J Peice - Blue
-            break;
-          case 2: // L Peice - Orange
-            break;
-          case 3: // 0 Peice - Yellow
-            break;
-          case 4: // T Peice - Purple
-            break;
-          case 5: // Z Peice - Green
-            break;
-          case 6: // S Peice - Red
-            break;
-        }
+        wattron(Game,COLOR_PAIR(Grid[row][col].color+1));
         mvwprintw(Game, row+1, col*2+1, "%d", Grid[row][col].color );
+        wattroff(Game,COLOR_PAIR(1));
       }
     }
   }
@@ -618,9 +603,16 @@ int PlayGame()
   Returns the score the player earned at game end.
   */
   initscr();
+  start_color();
   WINDOW *Panel;
   WINDOW *Game;
-
+  init_pair(1,COLOR_CYAN,COLOR_BLACK);
+  init_pair(2,COLOR_BLUE,COLOR_BLACK);
+  init_pair(3,COLOR_WHITE,COLOR_BLACK);
+  init_pair(4,COLOR_YELLOW,COLOR_BLACK);
+  init_pair(5,COLOR_MAGENTA,COLOR_BLACK);
+  init_pair(6,COLOR_GREEN,COLOR_BLACK);
+  init_pair(7,COLOR_RED,COLOR_BLACK);
   // Terminal dimension cheecking block.
   {
     int term_x, term_y;
