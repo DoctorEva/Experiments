@@ -349,6 +349,24 @@ struct thread_args{
   struct Hold_box *reserve;
 };
 
+void color_definitions()
+{
+  init_color(COLOR_BLACK, 150,150,150);
+  init_color(COLOR_MAGENTA, 1000,500,1000);
+  init_color(COLOR_BLUE, 300,500,1000);
+  init_color(COLOR_GREEN, 0,1000,0);
+  init_color(COLOR_CYAN, 0,800,800);
+  init_color(COLOR_RED, 800,0,0);
+
+  init_pair(1,COLOR_CYAN,COLOR_BLACK);
+  init_pair(2,COLOR_BLUE,COLOR_BLACK);
+  init_pair(3,COLOR_WHITE,COLOR_BLACK);
+  init_pair(4,COLOR_YELLOW,COLOR_BLACK);
+  init_pair(5,COLOR_MAGENTA,COLOR_BLACK);
+  init_pair(6,COLOR_GREEN,COLOR_BLACK);
+  init_pair(7,COLOR_RED,COLOR_BLACK);
+}
+
 int base_score(int lines_removed)
 {
   // Returns the score gained from lines scored before other modifications.
@@ -580,6 +598,7 @@ int remove_rows(struct block **Grid, WINDOW* Game)
         for(col = 0; col < width; col++)
         {
           Grid[dropping_row][col].occupation = Grid[dropping_row-1][col].occupation;
+          Grid[dropping_row][col].color = Grid[dropping_row-1][col].color;
         }
         dropping_row --;
       }
@@ -606,13 +625,7 @@ int PlayGame()
   start_color();
   WINDOW *Panel;
   WINDOW *Game;
-  init_pair(1,COLOR_CYAN,COLOR_BLACK);
-  init_pair(2,COLOR_BLUE,COLOR_BLACK);
-  init_pair(3,COLOR_WHITE,COLOR_BLACK);
-  init_pair(4,COLOR_YELLOW,COLOR_BLACK);
-  init_pair(5,COLOR_MAGENTA,COLOR_BLACK);
-  init_pair(6,COLOR_GREEN,COLOR_BLACK);
-  init_pair(7,COLOR_RED,COLOR_BLACK);
+  color_definitions();
   // Terminal dimension cheecking block.
   {
     int term_x, term_y;
