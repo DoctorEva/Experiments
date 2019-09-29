@@ -400,7 +400,7 @@ void refresh_Game(WINDOW* Game, struct block **Grid)
       {
         wattron(Game,COLOR_PAIR(Grid[row][col].color+1));
         mvwprintw(Game, row+1, col*2+1, "%d", Grid[row][col].color );
-        wattroff(Game,COLOR_PAIR(1));
+        wattroff(Game,COLOR_PAIR(Grid[row][col].color+1));
       }
     }
   }
@@ -417,8 +417,15 @@ void refresh_Panel(struct Panel_Data info)
   mvwprintw(info.panel_win, 3, 1, "Lines: %d", info.lines);
   mvwprintw(info.panel_win, 4, 1, "Level: %d", info.level);
   mvwprintw(info.panel_win, 5, 1, "Delay (ms): %d", info.speed);
+
+  wattron(info.panel_win,COLOR_PAIR(info.next+1));
   mvwprintw(info.panel_win, 6, 1, "Next: %d", info.next);
+  wattroff(info.panel_win,COLOR_PAIR(info.next+1));
+  
+  wattron(info.panel_win,COLOR_PAIR(info.reserve.hold+1));
   mvwprintw(info.panel_win, 7, 1, "Hold: %d", info.reserve.hold);
+  wattroff(info.panel_win,COLOR_PAIR(info.reserve.hold+1));
+
   wrefresh(info.panel_win);
 }
 
