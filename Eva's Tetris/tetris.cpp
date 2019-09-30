@@ -19,6 +19,7 @@
 
 // Used to control access to tetromino manipulation
 std::mutex mtx;
+std::mutex mtx_roll;    // Used to protect game score.
 
 struct block{
   // Data attached to individual slots on the games' grid.
@@ -333,6 +334,7 @@ struct Panel_Data{
   // Overhead data needed for the Game panel display and game.
   WINDOW* panel_win;
   int score;
+  int new_score;
   int speed;
   int lines;
   int level;
@@ -413,7 +415,10 @@ void refresh_Panel(struct Panel_Data info)
   wmove(info.panel_win, 0, 0);
   wclrtobot(info.panel_win);
   box(info.panel_win, 0, 0);
+  if(info.score != info.new_score)
+    wattron(info.panel_win, COLOR_PAIR(1));
   mvwprintw(info.panel_win, 2, 1, "Score: %d", info.score);
+  wattroff(info.panel_win, COLOR_PAIR(1));
   mvwprintw(info.panel_win, 3, 1, "Lines: %d", info.lines);
   mvwprintw(info.panel_win, 4, 1, "Level: %d", info.level);
   mvwprintw(info.panel_win, 5, 1, "Delay (ms): %d", info.speed);
@@ -421,7 +426,7 @@ void refresh_Panel(struct Panel_Data info)
   wattron(info.panel_win,COLOR_PAIR(info.next+1));
   mvwprintw(info.panel_win, 6, 1, "Next: %d", info.next);
   wattroff(info.panel_win,COLOR_PAIR(info.next+1));
-  
+
   wattron(info.panel_win,COLOR_PAIR(info.reserve.hold+1));
   mvwprintw(info.panel_win, 7, 1, "Hold: %d", info.reserve.hold);
   wattroff(info.panel_win,COLOR_PAIR(info.reserve.hold+1));
@@ -513,6 +518,32 @@ void* levelup_flash(void* arg)
   mtx.unlock();
   pthread_exit(NULL);
 }
+void* rolling_score(void* arg)
+{
+  struct Panel_Data* info = (struct Panel_Data*) arg;
+  mtx_roll.lock();
+  int diff = info->new_score - info->score;
+  int parts = 50;
+  int division = diff/parts;
+  int remainder = diff%parts;
+  while(info->new_score != info->score)
+  {
+    if(parts)
+    {
+      info->score += division;
+      parts--;
+    }
+    else
+    {
+      info->score++;
+      remainder--;
+    }
+    refresh_Panel(*info);
+    usleep(50000);
+  }
+  mtx_roll.unlock();
+  pthread_exit(NULL);
+}
 
 int drop_peice(WINDOW* Game, struct block **Grid, struct Panel_Data* info)
 {
@@ -591,13 +622,13 @@ int remove_rows(struct block **Grid, WINDOW* Game)
     if(in_row == width)
     {
       full_rows++;
+      wattron(Game, A_BLINK);
       for(col=0; col<width; col++)
       {
         Grid[row][col].occupation = 0;
-        wattron(Game, A_BLINK);
         mvwprintw(Game, row+1, col*2+1, "#");
-        wattroff(Game, A_BLINK);
       }
+      wattroff(Game, A_BLINK);
       // Drop the remaining rows above.
       int dropping_row = row;
       while(dropping_row > 1)
@@ -616,7 +647,7 @@ int remove_rows(struct block **Grid, WINDOW* Game)
     wrefresh(Game);
     pthread_t flash;
     pthread_create(&flash, NULL, score_flash, NULL);
-    sleep(2);
+    sleep(1);
   }
   return full_rows;
 }
@@ -676,6 +707,7 @@ int PlayGame()
   {
     info.panel_win = Panel;
     info.score = 0;
+    info.new_score = 0;
     info.speed = base_speed; // 1 second
     info.lines = 0; // Level up every 5 lines.
     info.level = 0;
@@ -692,17 +724,24 @@ int PlayGame()
   {
     // Check for completed rows, update information board.
     int lines_removed = remove_rows(Grid, Game);
-    info.score = info.score + (info.level+1)*(base_score(lines_removed));
+    info.new_score = info.new_score + (info.level+1)*(base_score(lines_removed));
     info.lines = info.lines+lines_removed;
     int old_level = info.level;
     info.level = info.lines/level_lines;
     info.speed = base_speed * (pow(.9, info.level));
 
     if(old_level != info.level)
-      {
-        pthread_t flash;
-        pthread_create(&flash, NULL, levelup_flash, NULL);
-      }
+    {
+      pthread_t flash;
+      pthread_create(&flash, NULL, levelup_flash, NULL);
+    }
+
+    if(info.new_score != info.score)
+    {
+      pthread_t roller;
+      pthread_create(&roller, NULL, rolling_score,  &info);
+    }
+
 
     refresh_Panel(info);
     refresh_Game(Game, Grid);
@@ -719,7 +758,7 @@ int PlayGame()
     delwin(Game);
     endwin();
   }
-  return info.score;
+  return info.new_score;
 }
 
 
