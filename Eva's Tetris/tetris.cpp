@@ -11,8 +11,6 @@
 #include <pthread.h>
 #include <mutex>
 
-#include "tetris.h"
-
 #define height 20         // Height of the playing grid, without the 'out of bounds' area.
 #define width 10          // Width of the playing grid
 #define level_lines 2     // Lines it takes to advance one level.
