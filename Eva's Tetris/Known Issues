@@ -1,0 +1,5 @@
+Tetris Bugs
+
+Need to change when the out of bounds checking is done to happen after the rows are removed.
+Need to change out of bounds checking to ignore empty member blocks.
+	I tried doing this fix, but the problem was not solved and I reverted it. WTF???

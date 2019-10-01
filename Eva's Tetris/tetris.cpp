@@ -367,6 +367,14 @@ void color_definitions()
   init_pair(5,COLOR_MAGENTA,COLOR_BLACK);
   init_pair(6,COLOR_GREEN,COLOR_BLACK);
   init_pair(7,COLOR_RED,COLOR_BLACK);
+
+  init_pair(8,COLOR_CYAN,COLOR_CYAN);
+  init_pair(9,COLOR_BLUE,COLOR_BLUE);
+  init_pair(10,COLOR_WHITE,COLOR_WHITE);
+  init_pair(11,COLOR_YELLOW,COLOR_YELLOW);
+  init_pair(12,COLOR_MAGENTA,COLOR_MAGENTA);
+  init_pair(13,COLOR_GREEN,COLOR_GREEN);
+  init_pair(14,COLOR_RED,COLOR_RED);
 }
 
 int base_score(int lines_removed)
@@ -393,16 +401,36 @@ void refresh_Game(WINDOW* Game, struct block **Grid)
   box(Game, 0, 0);
   wmove(Game,top_buffer, 0);
   whline(Game, '=', 30);
-  int row;
+  int row, col;
+  int lane[width];
+  for(col=0;col<width;col++)
+  {
+    lane[col] = 0;
+    for(row=0;row<height+top_buffer;row++)
+    {
+      if(Grid[row][col].occupation && Grid[row][col].is_active)
+        lane[col] = 1;
+    }
+  }
   for(row=0; row< height+top_buffer; row++)
   {
-    for(int col=0; col< width; col++)
+    for(col=0; col< width; col++)
     {
       if(Grid[row][col].occupation)
       {
-        wattron(Game,COLOR_PAIR(Grid[row][col].color+1));
-        mvwprintw(Game, row+1, col*2+1, "%d", Grid[row][col].color );
-        wattroff(Game,COLOR_PAIR(Grid[row][col].color+1));
+        if(lane[col] && !Grid[row][col].is_active)
+        {
+          wattron(Game,COLOR_PAIR(Grid[row][col].color+1+7));
+          mvwprintw(Game, row+1, col*2+1, "$");
+          wattroff(Game,COLOR_PAIR(Grid[row][col].color+1+7));
+          lane[col] = 0;
+        }
+        else
+        {
+          wattron(Game,COLOR_PAIR(Grid[row][col].color+1));
+          mvwprintw(Game, row+1, col*2+1, "%d", Grid[row][col].color );
+          wattroff(Game,COLOR_PAIR(Grid[row][col].color+1));
+        }
       }
     }
   }
