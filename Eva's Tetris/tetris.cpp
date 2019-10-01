@@ -11,6 +11,8 @@
 #include <pthread.h>
 #include <mutex>
 
+#include "tetris.h"
+
 #define height 20         // Height of the playing grid, without the 'out of bounds' area.
 #define width 10          // Width of the playing grid
 #define level_lines 2     // Lines it takes to advance one level.
@@ -681,7 +683,7 @@ int remove_rows(struct block **Grid, WINDOW* Game)
 }
 
 
-int PlayGame()
+int Tetris()
 {
   /*
   Begins a lovely game of Tetris.
@@ -787,17 +789,4 @@ int PlayGame()
     endwin();
   }
   return info.new_score;
-}
-
-
-int main(int argc, char** argv)
-{
-  // A small program to test a player's tetris skills.
-  puts("Welcome to Terminal Tetris!");
-  puts("Space to rotate peice, arrows to move. Good luck!");
-  puts("=== Press Enter to Continue ===");
-  getchar();
-  int score = PlayGame();
-  printf("Final Score :: %d\nThanks for playing!\n", score);
-  return 0;
 }
