@@ -55,7 +55,6 @@ class Shape{
     void down();
     void ENDER();
     void save(struct Hold_box *reserve);
-    int check_bounds();
 };
 void Shape::set()
 {
@@ -269,17 +268,7 @@ void Shape::ENDER()
     members[i]->is_active = 0;
   }
 }
-int Shape::check_bounds()
-{
-  // Decides if a tetromino is out of bounds. Returns true if it is.
-  int i;
-  for(i=0;i<4;i++)
-  {
-    if(members[i]->row >= top_buffer)
-      return 1;
-  }
-  return 0;
-}
+
 Shape::Shape(int color_, struct block** Grid_)
 {
   // Initializes the tetromino that is being spawned at the top of the game.
@@ -393,6 +382,18 @@ int base_score(int lines_removed)
     base = 1200;
 
   return base;
+}
+
+int check_bounds(struct block **Grid)
+{
+  // Decides if a tetromino is out of bounds. Returns false if it is.
+  int col;
+  for(col=0;col<width;col++)
+  {
+    if(Grid[top_buffer-1][col].occupation)
+      return 0;
+  }
+  return 1;
 }
 
 void refresh_Game(WINDOW* Game, struct block **Grid)
@@ -575,7 +576,7 @@ void* rolling_score(void* arg)
   pthread_exit(NULL);
 }
 
-int drop_peice(WINDOW* Game, struct block **Grid, struct Panel_Data* info)
+void drop_peice(WINDOW* Game, struct block **Grid, struct Panel_Data* info)
 {
   /*
   Spawns a tetromino and allows the user to control it until it lands.
@@ -626,8 +627,6 @@ int drop_peice(WINDOW* Game, struct block **Grid, struct Panel_Data* info)
   pthread_cancel(controller); // Tell the controller to finish.
 
   refresh_Game(Game, Grid);
-
-  return peice.check_bounds();
 }
 
 int remove_rows(struct block **Grid, WINDOW* Game)
@@ -755,8 +754,9 @@ int Tetris()
   refresh();
 
   // Game loop begins.
-  while(drop_peice(Game, Grid, &info))
+  while(check_bounds(Grid))
   {
+    drop_peice(Game, Grid, &info);
     // Check for completed rows, update information board.
     int lines_removed = remove_rows(Grid, Game);
     info.new_score = info.new_score + (info.level+1)*(base_score(lines_removed));
@@ -776,7 +776,6 @@ int Tetris()
       pthread_t roller;
       pthread_create(&roller, NULL, rolling_score,  &info);
     }
-
 
     refresh_Panel(info);
     refresh_Game(Game, Grid);
