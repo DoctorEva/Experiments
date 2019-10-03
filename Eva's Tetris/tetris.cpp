@@ -181,37 +181,39 @@ void Shape::rotate()
     coords[i][0] = x1 + center_row;
     coords[i][1] = y1 + center_col;
   }
-  // Translate until rotation area is within bounds. TODO
-  int out_left = 0; // Distance that we are out of bounds by, respectively.
-  int out_right = width-1;
-  int out_bot = height+top_buffer-1;
-  int out_top = 0;
-  for(i=0;i<4;i++)
+  // Translate until rotation area is within bounds.
   {
-    out_left = std::min(out_left, coords[i][1]);
-    out_right = std::max(out_right, coords[i][1]);
-    out_bot = std::max(out_bot, coords[i][0]);
-    out_top = std::min(out_top, coords[i][0]);
-  }
-  if(out_left < 0)
-  {
+    int out_left = 0; // Distance that we are out of bounds by, respectively.
+    int out_right = width-1;
+    int out_bot = height+top_buffer-1;
+    int out_top = 0;
     for(i=0;i<4;i++)
-      coords[i][1] -= out_left;
-  }
-  else if(out_right > width-1)
-  {
-    for(i=0;i<4;i++)
-      coords[i][1] -= out_right - (width-1);
-  }
-  if(out_bot > height+top_buffer-1)
-  {
-    for(i=0;i<4;i++)
-      coords[i][0] -= out_bot - (height+top_buffer-1);
-  }
-  else if(out_top < 0)
-  {
-    for(i=0;i<4;i++)
-      coords[i][0] -= out_top;
+    {
+      out_left = std::min(out_left, coords[i][1]);
+      out_right = std::max(out_right, coords[i][1]);
+      out_bot = std::max(out_bot, coords[i][0]);
+      out_top = std::min(out_top, coords[i][0]);
+    }
+    if(out_left < 0)
+    {
+      for(i=0;i<4;i++)
+        coords[i][1] -= out_left;
+    }
+    else if(out_right > width-1)
+    {
+      for(i=0;i<4;i++)
+        coords[i][1] -= out_right - (width-1);
+    }
+    if(out_bot > height+top_buffer-1)
+    {
+      for(i=0;i<4;i++)
+        coords[i][0] -= out_bot - (height+top_buffer-1);
+    }
+    else if(out_top < 0)
+    {
+      for(i=0;i<4;i++)
+        coords[i][0] -= out_top;
+    }
   }
   // Set virtual points to actual valid grid locations.
   for(i=0;i<4;i++)
@@ -228,9 +230,9 @@ void Shape::rotate()
       valid = 0; // Conflicts with a finalized block, invalid rotation.
     }
   }
+  // Save the results if all points valid.
   if(valid)
   {
-    // Save the results
     blank();
     for(i=0;i<4;i++)
     {
@@ -786,6 +788,10 @@ int Tetris()
     wrefresh(Game);
     wmove(Game, 0, 0);
     sleep(5);
+
+    for(int row=0 ;row<height+top_buffer; row++)
+      delete[] Grid[row];
+    delete[] Grid;
 
     delwin(Panel);
     delwin(Game);
