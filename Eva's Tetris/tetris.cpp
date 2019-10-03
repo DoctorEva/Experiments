@@ -689,8 +689,6 @@ int Tetris()
   */
   initscr();
   start_color();
-  WINDOW *Panel;
-  WINDOW *Game;
   color_definitions();
   // Terminal dimension cheecking block.
   {
@@ -709,8 +707,12 @@ int Tetris()
     clear();
   }
 
+  // Create new windows
+  WINDOW *Panel;
+  WINDOW *Game;
   Panel = newwin(10, 20, 3, 1);
   Game = newwin(height+top_buffer+2, width*2+2, 1, 22);
+
   // Initializing Grid..
   struct block **Grid;
   {
@@ -722,11 +724,12 @@ int Tetris()
     {
       for(int col=0; col<width; col++)
       {
-        Grid[row][col].occupation = 0;
-        Grid[row][col].color = 0;
-        Grid[row][col].is_active = 0;
-        Grid[row][col].row = row;
-        Grid[row][col].col = col;
+        struct block *current = &Grid[row][col];
+        current->occupation = 0;
+        current->color = 0;
+        current->is_active = 0;
+        current->row = row;
+        current->col = col;
       }
     }
   }
@@ -743,10 +746,12 @@ int Tetris()
     info.reserve.hold = -1;
     info.reserve.hold_use = 0;
     info.reserve.hold_call = -1;
-    refresh_Panel(info);
-    refresh_Game(Game, Grid);
-    refresh();
   }
+  // Populate the windows we created earlier and display them.
+  refresh_Panel(info);
+  refresh_Game(Game, Grid);
+  refresh();
+
   // Game loop begins.
   while(drop_peice(Game, Grid, &info))
   {
