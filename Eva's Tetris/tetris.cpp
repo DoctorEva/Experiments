@@ -688,6 +688,7 @@ int Tetris()
   Begins a lovely game of Tetris.
   Returns the score the player earned at game end.
   */
+  // Initialize ncurses mode, ncurses color mode
   initscr();
   start_color();
   color_definitions();
@@ -713,6 +714,9 @@ int Tetris()
   WINDOW *Game;
   Panel = newwin(10, 20, 3, 1);
   Game = newwin(height+top_buffer+2, width*2+2, 1, 22);
+
+  // Seed randomizer with current time
+  srand(time(0));
 
   // Initializing Grid..
   struct block **Grid;
