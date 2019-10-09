@@ -1,7 +1,7 @@
 //*************
-//Compilation Line: g++ -std=c++11 -o Tetris tetris.cpp -lncurses -lpthread
-//This program allows the user to play a game of Tetris.
-//Possible future expansions - Sound and Music system. Shape Previews
+// Implementation of tetris.h
+// This program allows the user to play a game of Tetris.
+// Possible future expansions - Sound and Music system. Shape Previews
 //*************
 #include <stdlib.h>
 #include <math.h>
@@ -17,45 +17,102 @@
 #define top_buffer 4      // height of 'out of bounds' space at the top of the game.
 #define base_speed 800    // Starting speed of 'gravity', in milliseconds
 
-// Used to control access to tetromino manipulation
-std::mutex mtx;
+std::mutex mtx;         // Used to control access to tetromino manipulation
 std::mutex mtx_roll;    // Used to protect game score.
 
+//*********************************************************
+// <Summary>
+// Declared in tetris.h
+int Tetris();
+
+// Not Declared in tetris.h
+// Data attached to individual slots on the games' grid.
 struct block{
-  // Data attached to individual slots on the games' grid.
-  int occupation;
-  int color;
-  int is_active;
+  int occupation;             // Boolean, indicates presence of a block in the slot.
+  int color;                  // Color of the block in the slot.
+  int is_active;              // Boolean, indicates that the block is part of the falling tetromino.
 
-  int col, row;
+  int col, row;               // Location of the slot on the grid.
 };
+
+// Overhead for the hold piece controls
 struct Hold_box{
-  // Overhead for the hold piece controls
-  int hold;
-  int hold_use;
-  int hold_call;
+  int hold;                   // Currently held peice. -1 if empty.
+  int hold_use;               // Avaliability of hold box. 0 if avaliable.
+  int hold_call;              // Flag: Overrides next dropped peice with the current value if not -1.
 };
 
+// Overhead data needed for the Game panel display and game mechanics.
+struct Panel_Data{
+  WINDOW* panel_win;
+  int score;                  // Displayed score
+  int new_score;              // Up-to-date score
+  int speed;                  // Milliseconds per gravity drop.
+  int lines;                  // Total of lines cleared
+  int level;                  // Current level
+  int next;                   // Next peice to drop.
+  struct Hold_box reserve;
+};
+
+// Tetromino class, controls manipulation of a dropping tetromino.
 class Shape{
-  // Tetromino class, provides tetromino manipulation.
   private:
-    int color;
-    struct block** Grid;
-    void blank();
-    void set();
-    struct block** members;
+    int color;                // Color of the tetromino being dropped.
+    struct block** Grid;      // Pointer to game board.
+    void blank();             // Empties the currently selected area.
+    void set();               // Fills the currently selected area with 'color' blocks.
+    struct block** members;   // Pointers to dropping tetromino's constituent blocks. 'The selected Area'
   public:
     int center_row;
     int center_col;
     Shape(int color_, struct block** Grid_);
-    void rotate();
-    int drop();
-    void left();
-    void right();
-    void down();
-    void ENDER();
+    void rotate();            // Rotates the tetromino, if resulting area is open.
+    int drop();               // Shifts the tetromino down one if resulting area is open. Returns TRUE (1) if resulting area is taken.
+    void left();              // Shifts the tetromino left one, if resulting area is open
+    void right();             // Shifts the tetromino right one, if resulting area is open.
+    void down();              // Shifts the tetromino down until it hits a wall. 'Lands' it.
+    void ENDER();             // Sets each member's is_active to false.
+
+    // Removes the peice from the board and stores it in 'Hold_box'.
+    // Sends a call for the previous Hold peice, else drop 'next' peice.
     void save(struct Hold_box *reserve);
 };
+
+// Data needed to run the dropper and controller threads.
+struct thread_args{
+  // No new data, this struct simply packages a set of arguments needed in our threads.
+  struct block **Grid;
+  int speed;
+  WINDOW* Game;
+  Shape* peice;
+  struct Hold_box *reserve;
+};
+
+// Display functions
+void color_definitions();
+void* score_flash(void* arg);
+void* levelup_flash(void* arg);
+void* rolling_score(void* arg);
+void refresh_Game(WINDOW* Game, struct block **Grid);
+void refresh_Panel(struct Panel_Data info);
+void dimension_check();
+
+// Calculation functions
+int base_score(int lines_removed);
+int check_bounds(struct block **Grid);
+void update_score( int lines_removed, struct Panel_Data* info);
+
+// Handler functions
+void* controller_action(void* arg);
+void* dropper_action(void* arg);
+void drop_peice(WINDOW* Game, struct block **Grid, struct Panel_Data* info);
+int remove_rows(struct block **Grid, WINDOW* Game);
+
+// Misc.
+struct Panel_Data init_panel(WINDOW* Panel);
+
+//*********************************************************
+// <Implementataions>
 void Shape::set()
 {
   // Sets all grid spots pointed to by 'members' to active blocks.
@@ -320,27 +377,6 @@ Shape::Shape(int color_, struct block** Grid_)
   // Light em up.
   set();
 }
-
-struct Panel_Data{
-  // Overhead data needed for the Game panel display and game.
-  WINDOW* panel_win;
-  int score;
-  int new_score;
-  int speed;
-  int lines;
-  int level;
-  int next;
-  struct Hold_box reserve;
-};
-struct thread_args{
-  // Data needed to run the dropper_action and controller_action threads.
-  struct block **Grid;
-  int speed;
-  WINDOW* Game;
-  Shape* peice;
-
-  struct Hold_box *reserve;
-};
 
 void color_definitions()
 {
@@ -681,6 +717,60 @@ int remove_rows(struct block **Grid, WINDOW* Game)
   return full_rows;
 }
 
+void dimension_check()
+{
+  int term_x, term_y;
+  getmaxyx(stdscr, term_y, term_x);
+  while(term_y < height+top_buffer+3 || term_x < 50)
+  {
+    mvprintw(0,0, "<<GAME PAUSED>>");
+    mvprintw(1, 0, "Please enlarge your terminal to 50x%d chars for Tetris!",height+top_buffer+3);
+    if(term_y < height+top_buffer+3)
+      mvprintw(2,0, "Down more!");
+    else if(term_x < 50)
+      mvprintw(2,0, "Right more!");
+    refresh();
+    getmaxyx(stdscr, term_y, term_x);
+  }
+  clear();
+}
+
+struct Panel_Data init_panel(WINDOW* Panel)
+{
+  struct Panel_Data info;
+  info.panel_win = Panel;
+  info.score = 0;
+  info.new_score = 0;
+  info.speed = base_speed;
+  info.lines = 0;
+  info.level = 0;
+  info.next = rand() % 7;
+  info.reserve.hold = -1;
+  info.reserve.hold_use = 0;
+  info.reserve.hold_call = -1;
+  return info;
+}
+
+void update_score( int lines_removed, struct Panel_Data* info)
+{
+  info->new_score = info->new_score + (info->level+1)*(base_score(lines_removed));
+  info->lines = info->lines+lines_removed;
+  int old_level = info->level;
+  info->level = info->lines/level_lines;
+  info->speed = base_speed * (pow(.9, info->level));
+
+  if(old_level != info->level)
+  {
+    pthread_t flash;
+    pthread_create(&flash, NULL, levelup_flash, NULL);
+  }
+
+  if(info->new_score != info->score)
+  {
+    pthread_t roller;
+    pthread_create(&roller, NULL, rolling_score,  info);
+  }
+}
 
 int Tetris()
 {
@@ -692,22 +782,9 @@ int Tetris()
   initscr();
   start_color();
   color_definitions();
-  // Terminal dimension cheecking block.
-  {
-    int term_x, term_y;
-    getmaxyx(stdscr, term_y, term_x);
-    while(term_y < height+top_buffer+3 || term_x < 50)
-    {
-      mvprintw(0, 0, "Please enlarge your terminal to 50x%d chars for Tetris!",height+top_buffer+3);
-      if(term_y < height+top_buffer+3)
-        mvprintw(1,0, "Down more!");
-      else if(term_x < 50)
-        mvprintw(1,0, "Right more!");
-      refresh();
-      getmaxyx(stdscr, term_y, term_x);
-    }
-    clear();
-  }
+
+  // Terminal dimension cheecking
+  dimension_check();
 
   // Create new windows
   WINDOW *Panel;
@@ -738,21 +815,11 @@ int Tetris()
       }
     }
   }
+
   // Initialize Panel information
-  struct Panel_Data info;
-  {
-    info.panel_win = Panel;
-    info.score = 0;
-    info.new_score = 0;
-    info.speed = base_speed; // 1 second
-    info.lines = 0; // Level up every 5 lines.
-    info.level = 0;
-    info.next = rand() % 7;
-    info.reserve.hold = -1;
-    info.reserve.hold_use = 0;
-    info.reserve.hold_call = -1;
-  }
-  // Populate the windows we created earlier and display them.
+  struct Panel_Data info = init_panel(Panel);
+
+  // Populate the windows we created earlier and display them
   refresh_Panel(info);
   refresh_Game(Game, Grid);
   refresh();
@@ -760,27 +827,13 @@ int Tetris()
   // Game loop begins.
   while(check_bounds(Grid))
   {
+    // Spawn a new peice.
     drop_peice(Game, Grid, &info);
-    // Check for completed rows, update information board.
+    // Check for completed rows
     int lines_removed = remove_rows(Grid, Game);
-    info.new_score = info.new_score + (info.level+1)*(base_score(lines_removed));
-    info.lines = info.lines+lines_removed;
-    int old_level = info.level;
-    info.level = info.lines/level_lines;
-    info.speed = base_speed * (pow(.9, info.level));
-
-    if(old_level != info.level)
-    {
-      pthread_t flash;
-      pthread_create(&flash, NULL, levelup_flash, NULL);
-    }
-
-    if(info.new_score != info.score)
-    {
-      pthread_t roller;
-      pthread_create(&roller, NULL, rolling_score,  &info);
-    }
-
+    // Update information board.
+    update_score(lines_removed, &info);
+    // Update display.
     refresh_Panel(info);
     refresh_Game(Game, Grid);
   }
