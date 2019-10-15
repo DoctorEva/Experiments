@@ -2,6 +2,31 @@
 // Implementation of tetris.h
 // This program allows the user to play a game of Tetris.
 // Possible future expansions - Sound and Music system. Shape Previews
+
+/*
+I wrote this program mainly as style practice. My aim is to get the most readable
+program possible, for both programmers and non-programmers. I went at this program
+with no prior planning besides wanting to make a Tetris recreation.
+
+My style when I started this program was to avoid using global variables at
+every opprotunity, however I now see that using globals is perhaps much more concise
+than constantly passing around a pointer to every function that needs access to
+a unique, shared structure (which comes up quite a bit, but not universally!).
+
+Will future programmers think fondly of me for using global variables? For
+avoiding them? Someone send me a sign!
+
+<NOTES>
+ 1. Learned that I can limit the scope of functions, global variables and defines
+ in larger projects by simply leaving them out of the header file, instead only
+ writing what other parts of the projects need to see.
+
+ 2. Experimented by writing a 'summary' section. I used to declare every function,
+ definition and class in the header file. Now, the Summary section covers these items,
+ leaving the header file dedicated only to the resources I intend to export to the
+ rest of the project. This ensures I still have a concise spot to reference the
+ internal workings of my code.
+*/
 //*************
 #include <stdlib.h>
 #include <math.h>
@@ -22,10 +47,10 @@ std::mutex mtx_roll;    // Used to protect game score.
 
 //*********************************************************
 // <Summary>
-// Declared in tetris.h
+// Exported Functions
 int Tetris();
 
-// Not Declared in tetris.h
+// Internal Functions
 // Data attached to individual slots on the games' grid.
 struct block{
   int occupation;             // Boolean, indicates presence of a block in the slot.
@@ -53,6 +78,7 @@ struct Panel_Data{
   int next;                   // Next peice to drop.
   struct Hold_box reserve;
 };
+struct Panel_Data init_panel(WINDOW* Panel); //Initialize panel members
 
 // Tetromino class, controls manipulation of a dropping tetromino.
 class Shape{
@@ -71,7 +97,7 @@ class Shape{
     void left();              // Shifts the tetromino left one, if resulting area is open
     void right();             // Shifts the tetromino right one, if resulting area is open.
     void down();              // Shifts the tetromino down until it hits a wall. 'Lands' it.
-    void ENDER();             // Sets each member's is_active to false.
+    void ENDER();             // Sets each member blocks' is_active value to false.
 
     // Removes the peice from the board and stores it in 'Hold_box'.
     // Sends a call for the previous Hold peice, else drop 'next' peice.
@@ -89,24 +115,24 @@ struct thread_args{
 };
 
 // Display functions
-void color_definitions();
-void* score_flash(void* arg);
-void* levelup_flash(void* arg);
-void* rolling_score(void* arg);
-void refresh_Game(WINDOW* Game, struct block **Grid);
-void refresh_Panel(struct Panel_Data info);
-void dimension_check();
+void color_definitions();         // Defines color pairings for ncurses
+void* score_flash(void* arg);     // Cosmetic function.
+void* levelup_flash(void* arg);   // Cosmetic function.
+void* rolling_score(void* arg);   // Cosmetic function. NOT trivially removable.
+void refresh_Game(WINDOW* Game, struct block **Grid);   // Important! Redraws the Game window.
+void refresh_Panel(struct Panel_Data info);             // Important! Redraws the Panel window.
+void dimension_check();                                 // Prompts the user to resize the terminal if too small
 
 // Calculation functions
-int base_score(int lines_removed);
-int check_bounds(struct block **Grid);
-void update_score( int lines_removed, struct Panel_Data* info);
+int base_score(int lines_removed);                                // Returns base score gained for # of rows removed simeultaneously.
+int check_bounds(struct block **Grid);                            // Checks if an occupied block is out of bounds. Returns TRUE if within bouns.
+void update_score( int lines_removed, struct Panel_Data* info);   // Handles level advancememnt, actual score, ect.
 
 // Handler functions
-void* controller_action(void* arg);
-void* dropper_action(void* arg);
-void drop_peice(WINDOW* Game, struct block **Grid, struct Panel_Data* info);
-int remove_rows(struct block **Grid, WINDOW* Game);
+void* controller_action(void* arg);     // Handles user input while controlling a tetromino.
+void* dropper_action(void* arg);        // Handles automatic tetromino 'falling'.
+void drop_peice(WINDOW* Game, struct block **Grid, struct Panel_Data* info);  // Spawns a new falling tetromino and the two controlling threads above.
+int remove_rows(struct block **Grid, WINDOW* Game); // Handles removing filled rows, returns the number of rows removed simeultaneously.
 
 // Misc.
 struct Panel_Data init_panel(WINDOW* Panel);
@@ -650,7 +676,6 @@ void drop_peice(WINDOW* Game, struct block **Grid, struct Panel_Data* info)
   }
   pthread_t controller;
   pthread_t dropper;
-  pthread_attr_t attr;
   void *status;
 
   if(pthread_create(&controller, NULL, controller_action, (void*) &args))
@@ -658,7 +683,7 @@ void drop_peice(WINDOW* Game, struct block **Grid, struct Panel_Data* info)
   if(pthread_create(&dropper, NULL, dropper_action, (void*) &args))
     exit(-1); // Failed to create dropper thread.
 
-  pthread_join(dropper,&status);
+  pthread_join(dropper,&status); // Wait for dropper to finish when tetromino lands.
 
   pthread_cancel(controller); // Tell the controller to finish.
 
@@ -795,7 +820,7 @@ int Tetris()
   // Seed randomizer with current time
   srand(time(0));
 
-  // Initializing Grid..
+  // Initializing Grid, allocating memory.
   struct block **Grid;
   {
     Grid = new struct block * [height+top_buffer];
@@ -839,12 +864,14 @@ int Tetris()
   }
   // Ending Game.
   {
+    // Game Over display
     wattron(Game, A_BOLD | A_BLINK);
     mvwprintw(Game, 10,5, "GAME OVER");
     wrefresh(Game);
     wmove(Game, 0, 0);
     sleep(5);
 
+    // Deallocation.
     for(int row=0 ;row<height+top_buffer; row++)
       delete[] Grid[row];
     delete[] Grid;
