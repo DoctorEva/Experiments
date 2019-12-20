@@ -3,7 +3,8 @@ A program that takes recipes and USDA data on what is agriculturally in season
 and finds the recipes that are made with ingredients that are in season.
 "The true organic is whatever is in season."
 
-Considerations: a. The user's city, what exactly is grown/sold nearby them?
-                b. A vegetarian/vegan setting. Option to exclude certain ingredients (allergies).
-                c. Nutritional information/recommendation? Sort by calories/vitamins/macro-molecule content?
-                d. Custom recipe addition/deletion. Private/Public sharing? Ratings? Favorites?
+Considerations: 
+                a. The user's city, what exactly is grown/sold nearby them? <High Priority>
+                b. A vegetarian/vegan setting. Option to exclude certain ingredients or category of ingredients (allergies, dislikes). <Critical Priority>
+                c. Nutritional information. Sort results by calories/vitamins/macro-molecule content? <Low Priority>
+                d. Custom recipe addition/deletion. Private/Public sharing? Ratings? Favorites? <Moderate Priority>
