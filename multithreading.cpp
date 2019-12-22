@@ -1,7 +1,9 @@
 #include <pthread.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <unistd.h>
 #include <queue>
+#include <signal.h>
 
 
 typedef struct _jobs
@@ -25,7 +27,8 @@ void* Worker_work(void* _args)
     {
       Job current = args->joblist.front();
       args->joblist.pop();
-
+      printf("Worker: Working on %d\n", current.input);
+      sleep(1);
       *current.output_buffer = current.input * 100;
     }
   }
@@ -44,19 +47,19 @@ int main(int argc, char** argv)
   newjob.input = 1;
   newjob.output_buffer = &outputs[0];
   args.joblist.push(newjob);
-  while(!outputs[0]);
 
   newjob.input = 2;
   newjob.output_buffer = &outputs[1];
   args.joblist.push(newjob);
-  while(!outputs[1]);
 
   newjob.input = 3;
   newjob.output_buffer = &outputs[2];
   args.joblist.push(newjob);
-  while(!outputs[2]);
+
+  while( !(outputs[0] && outputs[1] && outputs[2]) );
 
   printf("Outputs are %d, %d, %d\n", outputs[0], outputs[1], outputs[2]);
+  pthread_kill(Worker, 0);
   puts("Program exiting");
   return 0;
 }
