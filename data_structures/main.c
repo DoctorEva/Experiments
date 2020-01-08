@@ -51,4 +51,10 @@ int main(int argc, char** argv)
   append_node(&str, STRING, list);
   append_node(&str2, STRING, list);
   dump_list(list);
+
+  // Lets clear the list.
+  while(list)
+  {
+    list = delete_node(list);
+  }
 }

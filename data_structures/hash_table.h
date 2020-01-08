@@ -14,11 +14,15 @@ typedef struct _Record
   int age;
 } Record;
 
-typedef Data_node** Hash_Table;
+typedef struct _Hash_Table
+{
+  Data_node** table;
+  int (*_hashcode_func)(char*);
+} Hash_Table;
 
-Hash_Table init_table();
+Hash_Table init_table( int(*_hashcode_func)(char*) );
 
-void put_record( Record* entry, Hash_Table table);
+void put_record( Record entry, Hash_Table table);
 void delete_key( char* key, Hash_Table table);
 
 Record* get_record( char* key, Hash_Table table);
@@ -26,5 +30,6 @@ Record* get_record( char* key, Hash_Table table);
 void print_record( char* key, Hash_Table table);
 void dump_table(Hash_Table table);
 
+void free_table(Hash_Table table);
 
 #endif

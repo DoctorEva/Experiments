@@ -1,23 +1,30 @@
-
 #include "hash_table.h"
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
+#include <assert.h>
+
+int hashcode(char* key)
+{
+  // Note: Hashcode should be bounded between 0 and HASH_RANGE-1
+  int ret = 0;
+  if(strlen(key))
+  {
+    ret = key[0] % HASH_RANGE;
+  }
+  assert(ret < HASH_RANGE && ret >= 0);
+  return ret;
+}
 
 int main(int argc, char** argv)
 {
-  Record Eva = {"Eva Rosalene", 'F', 25};
-  Record Damen = {"Damen Maughan", 'F', 20};
-  Record Hatsune = {"Hatsune Miku", 'F', 13};
-  Record RinK = {"Rin Kagamine", 'M', 13};
-  Record Rin = {"Rin", 'F', 16};
+  Hash_Table table = init_table(&hashcode);
 
-  Hash_Table table = init_table();
-
-  put_record( &Eva, table);
-  put_record( &Damen, table);
-  put_record( &Hatsune, table);
-  put_record( &RinK, table);
-  put_record( &Rin, table);
+  put_record( (Record){"Eva Rosalene",  'F', 25}, table);
+  put_record( (Record){"Damen Maughan", 'F', 20}, table);
+  put_record( (Record){"Hatsune Miku",  'F', 13}, table);
+  put_record( (Record){"Rin Kagamine",  'M', 13}, table);
+  put_record( (Record){"Rin",           'F', 16}, table);
 
   dump_table(table);
 
@@ -28,12 +35,11 @@ int main(int argc, char** argv)
   puts("Looking at Eva.");
   print_record("Eva Rosalene", table);
   puts("Lets overwrite the existing Eva.");
-  Record Eva2 = {"Eva Rosalene", 'F', 26};
-  put_record( &Eva2, table);
+  put_record( (Record){"Eva Rosalene", 'F', 26}, table);
   print_record("Eva Rosalene", table);
   dump_table(table);
 
-  free(table);
+  free_table(table);
 
   return 0;
 }

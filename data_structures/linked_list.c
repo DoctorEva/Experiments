@@ -20,7 +20,7 @@ Data_node* list_back(Data_node* existing_node)
 }
 
 /*! list_front() finds the frontmost node of the list.
-    RETURNS: the address of the last node in the list.
+    RETURNS: the address of the first node in the list.
     PARAMS: Address of any node in the list.
 */
 Data_node* list_front(Data_node* existing_node)
