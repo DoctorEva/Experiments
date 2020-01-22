@@ -1,0 +1,21 @@
+# &s.name, &s.arrival_time, &s.question_time, &s.class);
+Eva 0 8 1
+Miracle 1 8 1
+Pikachu 2 10 2
+Ash 3 6 1
+Damen 4 6 0
+Rin 5 14 0
+Hajo 6 8 0
+Tokine 7 2 2
+Ayana 8 6 2
+
+
+Eva 0 8 1
+Miracle 1 8 1
+Pikachu 2 10 2
+Ash 3 6 1
+Damen 4 6 0
+Rin 5 14 0
+Hajo 6 8 0
+Tokine 7 2 2
+Ayana 8 6 2
