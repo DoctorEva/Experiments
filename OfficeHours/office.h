@@ -12,6 +12,7 @@
 typedef Data_node Student_node;
 
 enum Office_States{ EMPTY, FULL, BREAK, ALLOW};
+enum Mutexes{ STATE, OFFICE};
 
 typedef struct _Office
 {
@@ -21,14 +22,16 @@ typedef struct _Office
   Student_node* students;
   Student_node* cur_students;
   int state;
-  pthread_mutex_t mutex;
+  pthread_mutex_t mutex[2];
 } Office;
 
 Office* init_office(char* filename);
-void lock_office(Office* Off );
-void unlock_office(Office* Off );
-
 void* office_thread(void* office);
-void take_break();
+
+void locker(Office* Off, int index );
+void unlocker(Office* Off, int index );
+void update_state( Office* Off );
+
+//void take_break();
 
 #endif

@@ -5,7 +5,6 @@ void* student_thread(void* student_args)
   Student_args* args = (Student_args*) student_args;
   Student* Stud = (Student*) args->std;
   Office* off =   (Office*)  args->off;
-  lock_office(off);
   sleep( Stud->arrival_time);
 
   off->students = append_node( Stud, 0, off->students);
@@ -23,6 +22,8 @@ void enter_office(Student* Student, Office* Office)
   int is_waiting = 1;
   while( is_waiting )
   {
+    locker(Office, STATE);
+    update_state(Office);
     if(Office->state == EMPTY)
     {
       is_waiting = 0;
@@ -31,12 +32,11 @@ void enter_office(Student* Student, Office* Office)
     {
       is_waiting = !(Office->current_class == Student->class);
     }
-    else
-    {
-      sleep(0);
-    }
-  }
 
+    if( is_waiting )
+      unlocker(Office, STATE);
+  }
+  //*/
 
   Office->current_class = Student->class;
   Office->students = delete_node(Student->myNode);
@@ -44,7 +44,7 @@ void enter_office(Student* Student, Office* Office)
   Student->myNode = Office->cur_students;
   Office->num_students++;
   Office->students_since_break++;
-  unlock_office(Office);
+  unlocker(Office, STATE);
 }
 
 void leave_office(Student* Student, Office* Office)

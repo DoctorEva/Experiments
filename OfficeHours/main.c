@@ -25,37 +25,42 @@ void monitor( Office* o )
   int i = 0;
   while( 1 )
   {
-    //lock_office(o);
-    clear();
-    printw("Number of students: %d\n", o->num_students);
-    printw("Current class being seen: %s\n", classmap[o->current_class]);
-    printw("Students since break: %d\n", o->students_since_break);
-    printw("State: %s\n", statemap[o->state]);
-    printw("Time: %d\n", i++);
+    locker(o, STATE);
+    update_state(o);
 
-    printw(" CURRENTLY IN OFFICE \n");
-    printw( "Name:\tArrival:\tQuestion:\tClass:\n");
-    Data_node* current = list_front(o->cur_students);
-    while(current)
+    // Draw..
     {
-      Student* s = (Student*) current->value_ptr;
-      printw("%s\t\t%d\t\t%d\t%s\n", s->name, s->arrival_time, s->question_time, classmap[s->class]);
-      current = current->next;
+      clear();
+      printw("Number of students: %d\n", o->num_students);
+      printw("Current class being seen: %s\n", classmap[o->current_class]);
+      printw("Students since break: %d\n", o->students_since_break);
+      printw("State: %s\n", statemap[o->state]);
+      printw("Time: %d\n", i++);
+
+      printw(" CURRENTLY IN OFFICE \n");
+      printw( "Name:\tArrival:\tQuestion:\tClass:\n");
+      Data_node* current = list_front(o->cur_students);
+      while(current)
+      {
+        Student* s = (Student*) current->value_ptr;
+        printw("%s\t\t%d\t\t%d\t%s\n", s->name, s->arrival_time, s->question_time, classmap[s->class]);
+        current = current->next;
+      }
+
+      printw(" WAITING FOR ADMITTANCE \n");
+      printw( "Name:\tArrival:\tQuestion:\tClass:\n");
+      current = list_front(o->students);
+      while(current)
+      {
+        Student* s = (Student*) current->value_ptr;
+        printw("%s\t\t%d\t\t%d\t%s\n", s->name, s->arrival_time, s->question_time, classmap[s->class]);
+        current = current->next;
+      }
     }
 
-    printw(" WAITING FOR ADMITTANCE \n");
-    printw( "Name:\tArrival:\tQuestion:\tClass:\n");
-    current = list_front(o->students);
-    while(current)
-    {
-      Student* s = (Student*) current->value_ptr;
-      printw("%s\t\t%d\t\t%d\t%s\n", s->name, s->arrival_time, s->question_time, classmap[s->class]);
-      current = current->next;
-    }
-    //unlock_office(o);
     refresh();
+    unlocker(o, STATE);
     sleep(1);
-
   }
   endwin();
 }

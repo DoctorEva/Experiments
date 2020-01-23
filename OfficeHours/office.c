@@ -7,8 +7,12 @@ Office* init_office(char* filename)
   Office* ret = malloc( sizeof(Office) );
   memset(ret, 0, sizeof(Office));
 
-  pthread_mutex_init(&ret->mutex, NULL);
-  pthread_mutex_lock(&ret->mutex);
+  int i;
+  for(i=0; i<2; i++)
+  {
+    pthread_mutex_init(&ret->mutex[i], NULL);
+    //locker(ret, i);
+  }
 
   Data_node* file = read_file(filename);
   file = remove_comments_and_empty_lines(file, '#');
@@ -41,20 +45,34 @@ void* office_thread(void* office)
   Office* Off = (Office*) office;
   while(1)
   { // TODO - Replace with cohen sutherland style.
-    lock_office(Off);
-    Off->state = ALLOW;
-    if ( Off->num_students == 0 )                { Off->state = EMPTY; }
-    if ( Off->num_students >= MAX_CAP)           { Off->state = FULL; }
-    if ( Off->students_since_break >= BREAK_AMT) { Off->state = BREAK; }
-    unlock_office(Off);
+    locker(Off, STATE);
+    update_state(Off);
+    if( Off->state == BREAK )
+    {
+      unlocker(Off, STATE);
+      while( Off->num_students );
+      locker(Off, STATE);
+      Off->students_since_break = 0;
+      sleep(10);
+    }
+    unlocker(Off, STATE);
   }
 }
 
-void lock_office(Office* Off )
+void update_state( Office* Off )
 {
-  pthread_mutex_lock(&Off->mutex);
+  Off->state = ALLOW;
+  if ( Off->num_students == 0 )                { Off->state = EMPTY; }
+  if ( Off->num_students >= MAX_CAP)           { Off->state = FULL; }
+  if ( Off->students_since_break >= BREAK_AMT) { Off->state = BREAK; }
 }
-void unlock_office(Office* Off )
+
+//_________________________________________
+void locker(Office* Off, int index )
 {
-  pthread_mutex_unlock(&Off->mutex);
+  pthread_mutex_lock(&Off->mutex[index]);
+}
+void unlocker(Office* Off, int index )
+{
+  pthread_mutex_unlock(&Off->mutex[index]);
 }
